@@ -1,0 +1,46 @@
+export const CURRENCIES = [
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+];
+
+export const DEFAULT_CATEGORIES = [
+  { name: 'Food & Dining', color: '#F87171', icon: 'food' },
+  { name: 'Transportation', color: '#FB923C', icon: 'car' },
+  { name: 'Shopping', color: '#FBBF24', icon: 'shopping-bag' },
+  { name: 'Entertainment', color: '#34D399', icon: 'film' },
+  { name: 'Bills & Utilities', color: '#60A5FA', icon: 'receipt' },
+  { name: 'Healthcare', color: '#A78BFA', icon: 'medical-bag' },
+  { name: 'Education', color: '#F472B6', icon: 'school' },
+  { name: 'Travel', color: '#14B8A6', icon: 'airplane' },
+  { name: 'Salary', color: '#10B981', icon: 'cash' },
+  { name: 'Other', color: '#9CA3AF', icon: 'help-circle' },
+];
+
+export const CATEGORY_ICONS = [
+  'food',
+  'car',
+  'shopping-bag',
+  'film',
+  'receipt',
+  'medical-bag',
+  'school',
+  'airplane',
+  'cash',
+  'home',
+  'fitness',
+  'gift',
+  'phone',
+  'laptop',
+  'heart',
+  'coffee',
+  'pizza',
+  'gamepad',
+  'music',
+  'camera',
+  'help-circle',
+];
