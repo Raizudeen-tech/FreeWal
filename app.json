@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Expense_app",
-    "slug": "Expense_app",
+    "name": "FreeWal",
+    "slug": "FreeWal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,13 +21,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.FreeWal"
     },
     "web": {
       "favicon": "./assets/icon.png"
     },
     "plugins": [
-      "expo-sqlite"
-    ]
+      "expo-sqlite",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c2d22bde-9b21-44c0-ae84-7f20fd31286d"
+      }
+    }
   }
 }
