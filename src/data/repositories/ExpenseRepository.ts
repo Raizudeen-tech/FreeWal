@@ -107,6 +107,23 @@ export class ExpenseRepository {
     }
   }
 
+  async getMonthlySummary(date: Date): Promise<{ totalIncome: number; totalExpense: number }> {
+    const start = format(startOfMonth(date), 'yyyy-MM-dd');
+    const end = format(endOfMonth(date), 'yyyy-MM-dd');
+
+    try {
+      const incomePromise = this.getTotalByTypeAndDateRange('income', start, end);
+      const expensePromise = this.getTotalByTypeAndDateRange('expense', start, end);
+
+      const [totalIncome, totalExpense] = await Promise.all([incomePromise, expensePromise]);
+
+      return { totalIncome, totalExpense };
+    } catch (error) {
+      console.error('Error fetching monthly summary:', error);
+      throw error;
+    }
+  }
+
   async getByDateRange(startDate: string, endDate: string): Promise<Expense[]> {
     try {
       const result = await this.db.getAllAsync<any>(

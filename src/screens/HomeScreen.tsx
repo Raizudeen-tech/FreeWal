@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useColorScheme,
+  Alert,
 } from 'react-native';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useExpenseStore } from '../stores/expenseStore';
@@ -15,14 +17,14 @@ import { useAccountStore } from '../stores/accountStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ExpenseRepository } from '../data/repositories/ExpenseRepository';
 import DatabaseService from '../data/database/DatabaseService';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
 import { getCurrencySymbol, formatCurrency } from '../utils/export';
 
-export const HomeScreen: React.FC = () => {
-  const { expenses, loading } = useExpenseStore();
+export const HomeScreen: React.FC = ({ navigation }: any) => {
+  const { expenses, loading, deleteExpense } = useExpenseStore();
   const { categories } = useCategoryStore();
   const { accounts, totalBalance, fetchAccounts } = useAccountStore();
-  const { currency, theme: themeMode } = useSettingsStore();
+  const { currency, theme: themeMode, useMaterial3 } = useSettingsStore();
   const { fetchExpenses } = useExpenseStore();
   const { fetchCategories } = useCategoryStore();
   const expenseRepo = useMemo(() => new ExpenseRepository(), []);
@@ -37,7 +39,7 @@ export const HomeScreen: React.FC = () => {
 
   const colorScheme = useColorScheme();
   const resolvedTheme = themeMode === 'system' ? colorScheme : themeMode;
-  const theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+  const theme = getTheme(resolvedTheme === 'dark' ? 'dark' : 'light', useMaterial3);
   const currencySymbol = getCurrencySymbol(currency);
 
   useEffect(() => {
@@ -78,6 +80,10 @@ export const HomeScreen: React.FC = () => {
     });
   };
 
+  const handleTransactionPress = (expenseId: number) => {
+    navigation.navigate('EditExpense', { expenseId });
+  };
+
   const handleToggleAccount = () => {
     if (accounts.length === 0) return;
 
@@ -116,6 +122,44 @@ export const HomeScreen: React.FC = () => {
       </View>
     );
   }
+
+  const renderTransaction = (item: any) => {
+    const category = categories.find(c => c.id === item.categoryId);
+    const account = accounts.find(a => a.id === item.accountId);
+    const isIncome = item.type === 'income';
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[styles.transactionCard, { backgroundColor: theme.colors.surface }, theme.shadows.sm]}
+        onPress={() => handleTransactionPress(item.id)}
+      >
+        <View style={[styles.categoryIcon, { backgroundColor: category?.color || theme.colors.primary }]}>
+          <Text style={styles.categoryIconText}>{category?.icon}</Text>
+        </View>
+        <View style={styles.transactionDetails}>
+          <Text style={[styles.transactionTitle, { color: theme.colors.text }]}>
+            {category?.name || 'Unknown'}
+          </Text>
+          <Text style={[styles.transactionNote, { color: theme.colors.textSecondary }]}>
+            {item.note || 'No note'}
+          </Text>
+          <Text style={[styles.transactionDate, { color: theme.colors.textSecondary }]}>
+            {format(new Date(item.date), 'MMM dd, yyyy')}
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.transactionAmount,
+            { color: isIncome ? theme.colors.income : theme.colors.expense },
+          ]}
+        >
+          {isIncome ? '+' : '-'}
+          {formatCurrency(item.amount, currencySymbol)}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -190,9 +234,10 @@ export const HomeScreen: React.FC = () => {
           const account = accounts.find(a => a.id === expense.accountId);
           
           return (
-            <View
+            <TouchableOpacity
               key={expense.id}
               style={[styles.transactionCard, { backgroundColor: theme.colors.surface }, theme.shadows.sm]}
+              onPress={() => handleTransactionPress(expense.id)}
             >
               <View style={[styles.categoryIcon, { backgroundColor: category?.color || theme.colors.primary }]}>
                 <Text style={styles.categoryIconText}>
@@ -219,7 +264,7 @@ export const HomeScreen: React.FC = () => {
                 {expense.type === 'income' ? '+' : '-'}
                 {formatCurrency(expense.amount, currencySymbol)}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>

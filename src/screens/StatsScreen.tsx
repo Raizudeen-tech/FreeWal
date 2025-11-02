@@ -15,7 +15,7 @@ import { useCategoryStore } from '../stores/categoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ExpenseRepository } from '../data/repositories/ExpenseRepository';
 import DatabaseService from '../data/database/DatabaseService';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
 import { getCurrencySymbol, formatCurrency } from '../utils/export';
 
 const screenWidth = Dimensions.get('window').width;
@@ -52,12 +52,12 @@ const SafeChart = ({ chart: Chart, data, ...props }: any) => {
 export const StatsScreen: React.FC = () => {
   const { expenses } = useExpenseStore();
   const { categories } = useCategoryStore();
-  const { currency, theme: themeMode } = useSettingsStore();
+  const { currency, theme: themeMode, useMaterial3 } = useSettingsStore();
   const expenseRepo = useMemo(() => new ExpenseRepository(), []);
 
   const colorScheme = useColorScheme();
   const resolvedTheme = themeMode === 'system' ? colorScheme : themeMode;
-  const theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+  const theme = getTheme(resolvedTheme === 'dark' ? 'dark' : 'light', useMaterial3);
   const currencySymbol = getCurrencySymbol(currency);
   const formatYAxisLabel = useCallback(
     (value: string) => {

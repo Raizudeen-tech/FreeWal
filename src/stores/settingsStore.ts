@@ -8,6 +8,7 @@ interface AppSettings {
   isPinEnabled: boolean;
   isBiometricEnabled: boolean;
   pinCode: string | null;
+  useMaterial3: boolean; // Material 3 Expressive Theming toggle
 }
 
 interface SettingsState extends AppSettings {
@@ -19,6 +20,7 @@ interface SettingsState extends AppSettings {
   verifyPin: (pinCode: string) => boolean;
   enableBiometric: () => void;
   disableBiometric: () => void;
+  setMaterial3: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -29,6 +31,7 @@ export const useSettingsStore = create<SettingsState>()(
       isPinEnabled: false,
       isBiometricEnabled: false,
       pinCode: null,
+      useMaterial3: false, // Material 3 disabled by default
 
       setCurrency: (currency: string) => set({ currency }),
       
@@ -48,6 +51,8 @@ export const useSettingsStore = create<SettingsState>()(
       enableBiometric: () => set({ isBiometricEnabled: true }),
       
       disableBiometric: () => set({ isBiometricEnabled: false }),
+      
+      setMaterial3: (enabled: boolean) => set({ useMaterial3: enabled }),
     }),
     {
       name: 'app-settings',

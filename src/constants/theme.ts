@@ -1,13 +1,90 @@
+import { generateExpressiveTheme, getSystemSeedColor } from '../utils/materialColors';
+
+// Material 3 Expressive theme generator
+export function getMaterial3Theme(isDark: boolean) {
+  const seedColor = getSystemSeedColor();
+  return generateExpressiveTheme(seedColor, isDark);
+}
+
+// Helper to convert Material 3 scheme to app theme colors
+function material3ToAppColors(m3: ReturnType<typeof generateExpressiveTheme>, isDark: boolean) {
+  return {
+    primary: m3.primary,
+    onPrimary: m3.onPrimary,
+    secondary: m3.secondary,
+    background: isDark ? '#0F1419' : m3.background, // Darker background for better contrast
+    surface: isDark ? '#1A1F26' : m3.surface, // Darker surface
+    surfaceElevated: isDark ? '#242A33' : '#FFFFFF', // More elevated contrast
+    text: isDark ? '#F0F4F8' : m3.onBackground, // Brighter text in dark mode
+    textSecondary: isDark ? '#B8C5D0' : m3.onSurfaceVariant, // More visible secondary text
+    border: isDark ? '#3D4451' : m3.outlineVariant, // More visible borders
+    error: isDark ? '#FF6B6B' : m3.error, // Brighter error color
+    onError: m3.onError,
+    success: isDark ? '#51CF66' : '#10B981',
+    warning: isDark ? '#FFD93D' : '#F59E0B',
+    info: m3.tertiary,
+    
+    // Card colors using Material 3 containers
+    card1: m3.primaryContainer,
+    card2: m3.secondaryContainer,
+    card3: m3.tertiaryContainer,
+    card4: m3.errorContainer,
+    card5: m3.primaryContainer,
+    card6: m3.secondaryContainer,
+    
+    // Category colors - mix of Material 3 and custom
+    categoryColors: [
+      isDark ? '#FF6B6B' : m3.error, // Brighter red
+      isDark ? '#FFA94D' : '#FB923C', // Brighter orange
+      isDark ? '#FFD93D' : '#FBBF24', // Brighter yellow
+      isDark ? '#51CF66' : '#34D399', // Brighter green
+      m3.primary, // Blue
+      m3.tertiary, // Purple
+      m3.secondary, // Pink
+      isDark ? '#3BC9DB' : '#14B8A6', // Brighter teal
+    ],
+    
+    // Income/Expense colors
+    income: isDark ? '#51CF66' : '#10B981',
+    expense: isDark ? '#FF6B6B' : m3.error,
+    
+    // Material 3 specific colors
+    m3: {
+      primaryContainer: m3.primaryContainer,
+      onPrimaryContainer: m3.onPrimaryContainer,
+      secondaryContainer: m3.secondaryContainer,
+      onSecondaryContainer: m3.onSecondaryContainer,
+      tertiaryContainer: m3.tertiaryContainer,
+      onTertiaryContainer: m3.onTertiaryContainer,
+      surfaceVariant: m3.surfaceVariant,
+      onSurfaceVariant: m3.onSurfaceVariant,
+      outline: m3.outline,
+      outlineVariant: m3.outlineVariant,
+      errorContainer: m3.errorContainer,
+      onErrorContainer: m3.onErrorContainer,
+    },
+    
+    // Dialog specific colors
+    dialog: {
+      background: isDark ? '#1F2630' : '#FFFFFF',
+      overlay: isDark ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.5)',
+    },
+  };
+}
+
 export const lightTheme = {
   colors: {
     primary: '#6366F1', // Indigo
+    onPrimary: '#FFFFFF',
     secondary: '#EC4899', // Pink
     background: '#F9FAFB',
     surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF', // Elevated surfaces (modals, cards)
     text: '#1F2937',
     textSecondary: '#6B7280',
     border: '#E5E7EB',
     error: '#EF4444',
+    onError: '#FFFFFF',
     success: '#10B981',
     warning: '#F59E0B',
     info: '#3B82F6',
@@ -35,6 +112,12 @@ export const lightTheme = {
     // Income/Expense colors
     income: '#10B981',
     expense: '#EF4444',
+    
+    // Dialog specific colors
+    dialog: {
+      background: '#FFFFFF',
+      overlay: 'rgba(0, 0, 0, 0.5)',
+    },
   },
   spacing: {
     xs: 4,
@@ -69,24 +152,24 @@ export const lightTheme = {
   shadows: {
     sm: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      elevation: 3,
     },
     md: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 5,
     },
     lg: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 5,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
     },
   },
 };
@@ -96,12 +179,16 @@ export const darkTheme = {
   colors: {
     ...lightTheme.colors,
     primary: '#818CF8', // Lighter Indigo for dark mode
+    onPrimary: '#1F2937',
     secondary: '#F472B6', // Lighter Pink
-    background: '#111827',
-    surface: '#1F2937',
-    text: '#F9FAFB',
-    textSecondary: '#9CA3AF',
-    border: '#374151',
+    background: '#0F1419', // Darker for better contrast
+    surface: '#1A1F26', // Darker surface
+    surfaceElevated: '#242A33', // Elevated surfaces with more contrast
+    text: '#F0F4F8', // Brighter text
+    textSecondary: '#B8C5D0', // More visible secondary text
+    border: '#3D4451', // More visible borders
+    error: '#FF6B6B', // Brighter red
+    onError: '#1F2937',
 
     // Adjusted card colors for dark mode
     card1: '#78350F', // Dark gold/brown
@@ -113,39 +200,69 @@ export const darkTheme = {
 
     // Adjusted category colors for dark mode
     categoryColors: [
-      '#FCA5A5', // Lighter Red
-      '#FDBA74', // Lighter Orange
-      '#FDE047', // Lighter Yellow
-      '#86EFAC', // Lighter Green
-      '#93C5FD', // Lighter Blue
-      '#C4B5FD', // Lighter Purple
-      '#F9A8D4', // Lighter Pink
-      '#6EE7B7', // Lighter Teal
+      '#FF6B6B', // Brighter Red
+      '#FFA94D', // Brighter Orange
+      '#FFD93D', // Brighter Yellow
+      '#51CF66', // Brighter Green
+      '#4DABF7', // Brighter Blue
+      '#B197FC', // Brighter Purple
+      '#FF8AD8', // Brighter Pink
+      '#3BC9DB', // Brighter Teal
     ],
+    
+    // Dialog specific colors
+    dialog: {
+      background: '#1F2630',
+      overlay: 'rgba(0, 0, 0, 0.85)',
+    },
   },
   shadows: {
     sm: {
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.12,
       shadowRadius: 4,
-      elevation: 3,
+      elevation: 4,
     },
     md: {
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
+      shadowOpacity: 0.18,
       shadowRadius: 8,
-      elevation: 5,
+      elevation: 6,
     },
     lg: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 8,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 10,
     },
   },
 };
 
 export type Theme = typeof lightTheme;
+
+/**
+ * Get the appropriate theme based on mode and Material 3 setting
+ * @param mode - 'light' or 'dark'
+ * @param useMaterial3 - whether to use Material 3 Expressive theming
+ */
+export function getTheme(mode: 'light' | 'dark', useMaterial3: boolean = false): Theme {
+  const baseTheme = mode === 'dark' ? darkTheme : lightTheme;
+  
+  if (!useMaterial3) {
+    return baseTheme;
+  }
+  
+  // Generate Material 3 theme and merge with base theme
+  const m3Colors = material3ToAppColors(getMaterial3Theme(mode === 'dark'), mode === 'dark');
+  
+  return {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      ...m3Colors,
+    },
+  };
+}

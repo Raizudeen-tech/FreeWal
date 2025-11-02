@@ -13,13 +13,14 @@ import { useExpenseStore } from '../stores/expenseStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { useAccountStore } from '../stores/accountStore';
 import { useColorScheme } from 'react-native';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
 import { CURRENCIES } from '../constants/data';
 import { exportToCSV } from '../utils/export';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatabaseService from '../data/database/DatabaseService';
 
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemedDialog } from '../components/ThemedDialog';
 import { useNavigation } from '@react-navigation/native';
 
 export const SettingsScreen: React.FC = () => {
@@ -35,6 +36,8 @@ export const SettingsScreen: React.FC = () => {
     disablePin,
     enableBiometric,
     disableBiometric,
+    useMaterial3,
+    setMaterial3,
   } = useSettingsStore();
 
   const { expenses } = useExpenseStore();
@@ -43,8 +46,9 @@ export const SettingsScreen: React.FC = () => {
 
   const colorScheme = useColorScheme();
   const resolvedTheme = themeMode === 'system' ? colorScheme : themeMode;
-  const theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+  const theme = getTheme(resolvedTheme === 'dark' ? 'dark' : 'light', useMaterial3);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   const handleExport = async () => {
     try {
@@ -88,47 +92,39 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const handleResetApp = () => {
-    Alert.alert(
-      'Reset App',
-      'This will permanently delete all accounts, categories, and transactions, and reset settings. This action cannot be undone. Proceed?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Wipe database: drops and recreates tables
-              await DatabaseService.resetDatabase();
+    setShowResetDialog(true);
+  };
 
-              // Clear persisted settings
-              await AsyncStorage.removeItem('app-settings');
+  const confirmReset = async () => {
+    try {
+      // Wipe database: drops and recreates tables
+      await DatabaseService.resetDatabase();
 
-              // Also reset runtime settings to defaults immediately
-              disableBiometric();
-              disablePin();
-              // Toggle until we reach light (since toggle cycles)
-              if (themeMode !== 'light') {
-                // Ensure we set to light deterministically
-                // use explicit setter when available
-                useSettingsStore.getState().setTheme('system');
-              }
+      // Clear persisted settings
+      await AsyncStorage.removeItem('app-settings');
 
-              // Refresh in-memory stores
-              await Promise.all([
-                useCategoryStore.getState().fetchCategories(),
-                useAccountStore.getState().fetchAccounts(),
-                useExpenseStore.getState().fetchExpenses(),
-              ]);
+      // Also reset runtime settings to defaults immediately
+      disableBiometric();
+      disablePin();
+      // Toggle until we reach light (since toggle cycles)
+      if (themeMode !== 'light') {
+        // Ensure we set to light deterministically
+        // use explicit setter when available
+        useSettingsStore.getState().setTheme('system');
+      }
 
-              Alert.alert('Reset complete', 'All app data has been removed.');
-            } catch (e) {
-              Alert.alert('Reset failed', 'Something went wrong while resetting the app.');
-            }
-          },
-        },
-      ]
-    );
+      // Refresh in-memory stores
+      await Promise.all([
+        useCategoryStore.getState().fetchCategories(),
+        useAccountStore.getState().fetchAccounts(),
+        useExpenseStore.getState().fetchExpenses(),
+      ]);
+
+      setShowResetDialog(false);
+      Alert.alert('Reset complete', 'All app data has been removed.');
+    } catch (e) {
+      Alert.alert('Reset failed', 'Something went wrong while resetting the app.');
+    }
   };
 
   return (
@@ -164,6 +160,26 @@ export const SettingsScreen: React.FC = () => {
             value={themeMode}
             onValueChange={setTheme}
           />
+        </View>
+        
+        {/* Material 3 Expressive Theming Toggle */}
+        <View style={[styles.settingCard, { backgroundColor: theme.colors.surface }, theme.shadows.sm, { marginTop: 12 }]}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+                Material 3 Theming
+              </Text>
+              <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                Use system colors with expressive Material 3 design
+              </Text>
+            </View>
+            <Switch
+              value={useMaterial3}
+              onValueChange={setMaterial3}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={useMaterial3 ? '#FFF' : '#F4F3F4'}
+            />
+          </View>
         </View>
       </View>
 
@@ -242,7 +258,7 @@ export const SettingsScreen: React.FC = () => {
           Data Management
         </Text>
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: theme.colors.primary }, theme.shadows.sm]}
+          style={[styles.actionCard, { backgroundColor: theme.colors.primary }, theme.shadows.md]}
           onPress={handleExport}
         >
           <Text style={styles.actionText}>Export to CSV</Text>
@@ -280,12 +296,32 @@ export const SettingsScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             onPress={handleResetApp}
-            style={[styles.resetButton, { backgroundColor: theme.colors.error }]}
+            style={[styles.resetButton, { backgroundColor: theme.colors.error }, theme.shadows.sm]}
           >
             <Text style={styles.resetButtonText}>Reset</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      <ThemedDialog
+        visible={showResetDialog}
+        title="Reset App"
+        message="This will permanently delete all accounts, categories, and transactions, and reset settings. This action cannot be undone. Proceed?"
+        theme={theme}
+        onDismiss={() => setShowResetDialog(false)}
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowResetDialog(false),
+            style: 'default',
+          },
+          {
+            text: 'Reset',
+            onPress: confirmReset,
+            style: 'destructive',
+          },
+        ]}
+      />
     </ScrollView>
   );
 };
@@ -314,7 +350,6 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 12,
     marginTop: 4,
-    marginBottom: 12,
   },
   resetButton: {
     paddingHorizontal: 20,
@@ -332,6 +367,16 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
   },
   resetCard: {
     flexDirection: 'row',

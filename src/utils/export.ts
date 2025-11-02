@@ -1,7 +1,6 @@
-import * as Sharing from 'expo-sharing';
 import { Expense } from '../data/models';
 import { format } from 'date-fns';
-import { Platform, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
 export const exportToCSV = async (expenses: Expense[], categories: any[], accounts: any[]): Promise<void> => {
   try {

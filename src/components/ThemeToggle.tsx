@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
+import { useSettingsStore } from '../stores/settingsStore';
 
 type ThemeOption = 'system' | 'light' | 'dark';
 
@@ -12,7 +13,8 @@ interface ThemeToggleProps {
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ value, onValueChange }) => {
   const colorScheme = useColorScheme();
   const resolved = value === 'system' ? colorScheme : value;
-  const theme = resolved === 'dark' ? darkTheme : lightTheme;
+  const { useMaterial3 } = useSettingsStore();
+  const theme = getTheme(resolved === 'dark' ? 'dark' : 'light', useMaterial3);
 
   const options: ThemeOption[] = ['system', 'light', 'dark'];
 

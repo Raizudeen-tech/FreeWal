@@ -2,19 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, useColorScheme } from 'react-native';
 import { useAccountStore } from '../stores/accountStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
 import { getCurrencySymbol } from '../utils/export';
+import { ThemedDialog } from '../components/ThemedDialog';
 
 export const AccountsScreen: React.FC = () => {
   const { accounts, fetchAccounts, addAccount, deleteAccount, loading } = useAccountStore();
-  const { currency, theme: themeMode } = useSettingsStore();
+  const { currency, theme: themeMode, useMaterial3 } = useSettingsStore();
 
   const systemScheme = useColorScheme() || 'light';
   const resolved = themeMode === 'system' ? systemScheme : themeMode;
-  const theme = resolved === 'dark' ? darkTheme : lightTheme;
+  const theme = getTheme(resolved === 'dark' ? 'dark' : 'light', useMaterial3);
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     // Make sure accounts are loaded
@@ -43,20 +46,20 @@ export const AccountsScreen: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Delete account', 'Are you sure you want to delete this account? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteAccount(id);
-          } catch (e) {
-            Alert.alert('Error', 'Failed to delete account');
-          }
-        },
-      },
-    ]);
+    setAccountToDelete(id);
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (accountToDelete === null) return;
+    
+    try {
+      await deleteAccount(accountToDelete);
+      setDeleteDialogVisible(false);
+      setAccountToDelete(null);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete account');
+    }
   };
 
   return (
@@ -94,7 +97,7 @@ export const AccountsScreen: React.FC = () => {
           </View>
         </View>
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.colors.primary }, loading && { opacity: 0.6 }]}
+          style={[styles.primaryButton, { backgroundColor: theme.colors.primary }, theme.shadows.sm, loading && { opacity: 0.6 }]}
           onPress={handleAdd}
           disabled={loading}
         >
@@ -120,7 +123,7 @@ export const AccountsScreen: React.FC = () => {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.dangerButton, { backgroundColor: theme.colors.error }]}
+                  style={[styles.dangerButton, { backgroundColor: theme.colors.error }, theme.shadows.sm]}
                   onPress={() => handleDelete(acc.id)}
                 >
                   <Text style={styles.dangerButtonText}>Delete</Text>
@@ -130,6 +133,32 @@ export const AccountsScreen: React.FC = () => {
           </View>
         )}
       </View>
+
+      <ThemedDialog
+        visible={deleteDialogVisible}
+        title="Delete Account"
+        message="Are you sure you want to delete this account? This cannot be undone."
+        theme={theme}
+        onDismiss={() => {
+          setDeleteDialogVisible(false);
+          setAccountToDelete(null);
+        }}
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setDeleteDialogVisible(false);
+              setAccountToDelete(null);
+            },
+            style: 'default',
+          },
+          {
+            text: 'Delete',
+            onPress: confirmDelete,
+            style: 'destructive',
+          },
+        ]}
+      />
     </ScrollView>
   );
 };

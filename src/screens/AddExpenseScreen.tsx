@@ -6,17 +6,17 @@ import { useExpenseStore } from "../stores/expenseStore";
 import { useCategoryStore } from "../stores/categoryStore";
 import { useAccountStore } from "../stores/accountStore";
 import { useSettingsStore } from "../stores/settingsStore";
-import { lightTheme, darkTheme } from "../constants/theme";
+import { getTheme } from "../constants/theme";
 import { getCurrencySymbol } from "../utils/export";
 
 export const AddExpenseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { addExpense } = useExpenseStore();
   const { categories } = useCategoryStore();
   const { accounts, addAccount, loading: accountsLoading } = useAccountStore();
-  const { currency, theme: themeMode } = useSettingsStore();
+  const { currency, theme: themeMode, useMaterial3 } = useSettingsStore();
   const systemScheme = useColorScheme() || "light";
   const resolvedMode = themeMode === "system" ? systemScheme : themeMode;
-  const theme = resolvedMode === "dark" ? darkTheme : lightTheme;
+  const theme = getTheme(resolvedMode === 'dark' ? 'dark' : 'light', useMaterial3);
   const currencySymbol = getCurrencySymbol(currency);
 
   const [amount, setAmount] = useState("");
@@ -217,7 +217,7 @@ export const AddExpenseScreen: React.FC<{ navigation: any }> = ({ navigation }) 
                 <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No accounts found</Text>
                 <Text style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}>You need an account to record a transaction.</Text>
                 <TouchableOpacity
-                  style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
+                  style={[styles.primaryButton, { backgroundColor: theme.colors.primary }, theme.shadows.sm]}
                   onPress={handleCreateDefaultAccount}
                   disabled={accountsLoading}
                 >
@@ -299,6 +299,9 @@ export const AddExpenseScreen: React.FC<{ navigation: any }> = ({ navigation }) 
               onCancel={hideDatePicker}
               date={new Date(date)}
               locale="en"
+              isDarkModeEnabled={resolvedMode === 'dark'}
+              textColor={theme.colors.text}
+              accentColor={theme.colors.primary}
             />
           </View>
 

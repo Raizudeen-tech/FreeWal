@@ -12,21 +12,25 @@ import {
 } from 'react-native';
 import { useCategoryStore } from '../stores/categoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { lightTheme, darkTheme } from '../constants/theme';
+import { getTheme } from '../constants/theme';
 import { CATEGORY_ICONS } from '../constants/data';
+import { ThemedDialog } from '../components/ThemedDialog';
 
 export const CategoriesScreen: React.FC = () => {
   const { categories, addCategory, updateCategory, deleteCategory, getCategoryExpenseCount } = useCategoryStore();
-  const { theme: themeMode } = useSettingsStore();
+  const { theme: themeMode, useMaterial3 } = useSettingsStore();
   const colorScheme = useColorScheme();
   const resolvedTheme = themeMode === 'system' ? colorScheme : themeMode;
-  const theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+  const theme = getTheme(resolvedTheme === 'dark' ? 'dark' : 'light', useMaterial3);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(theme.colors.categoryColors[0]);
   const [selectedIcon, setSelectedIcon] = useState(CATEGORY_ICONS[0]);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   const handleAdd = () => {
     setEditingCategory(null);
@@ -75,26 +79,26 @@ export const CategoriesScreen: React.FC = () => {
 
   const handleDelete = async (category: any) => {
     const count = await getCategoryExpenseCount(category.id);
-    
-    Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category.name}"?${count > 0 ? `\n\nThis will also delete ${count} expense(s).` : ''}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategory(category.id);
-              Alert.alert('Success', 'Category deleted successfully');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete category');
-            }
-          },
-        },
-      ]
+    setCategoryToDelete(category);
+    setDeleteMessage(
+      count > 0
+        ? `Are you sure you want to delete "${category.name}"?\n\nThis will also delete ${count} expense(s).`
+        : `Are you sure you want to delete "${category.name}"?`
     );
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
+    
+    try {
+      await deleteCategory(categoryToDelete.id);
+      setDeleteDialogVisible(false);
+      setCategoryToDelete(null);
+      Alert.alert('Success', 'Category deleted successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete category');
+    }
   };
 
   return (
@@ -104,7 +108,7 @@ export const CategoriesScreen: React.FC = () => {
           Categories
         </Text>
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+          style={[styles.addButton, { backgroundColor: theme.colors.primary }, theme.shadows.md]}
           onPress={handleAdd}
         >
           <Text style={styles.addButtonText}>+ Add</Text>
@@ -130,13 +134,13 @@ export const CategoriesScreen: React.FC = () => {
             </View>
             <View style={styles.categoryActions}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                style={[styles.actionButton, { backgroundColor: theme.colors.primary }, theme.shadows.sm]}
                 onPress={() => handleEdit(category)}
               >
                 <Text style={styles.actionButtonText}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+                style={[styles.actionButton, { backgroundColor: theme.colors.error }, theme.shadows.sm]}
                 onPress={() => handleDelete(category)}
               >
                 <Text style={styles.actionButtonText}>Delete</Text>
@@ -153,14 +157,14 @@ export const CategoriesScreen: React.FC = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.dialog?.overlay || 'rgba(0, 0, 0, 0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.dialog?.background || theme.colors.surfaceElevated }, theme.shadows.lg]}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               {editingCategory ? 'Edit Category' : 'Add Category'}
             </Text>
 
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.background, color: theme.colors.text }]}
+              style={[styles.input, { backgroundColor: theme.colors.background, color: theme.colors.text, borderWidth: 1, borderColor: theme.colors.border }]}
               value={name}
               onChangeText={setName}
               placeholder="Category name"
@@ -177,7 +181,7 @@ export const CategoriesScreen: React.FC = () => {
                   style={[
                     styles.colorOption,
                     { backgroundColor: color },
-                    selectedColor === color && styles.selectedColor,
+                    selectedColor === color && [styles.selectedColor, { borderColor: theme.colors.primary }],
                   ]}
                   onPress={() => setSelectedColor(color)}
                 />
@@ -186,7 +190,7 @@ export const CategoriesScreen: React.FC = () => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: theme.colors.border }]}
+                style={[styles.modalButton, { backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.border }]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>
@@ -194,15 +198,41 @@ export const CategoriesScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+                style={[styles.modalButton, { backgroundColor: theme.colors.primary }, theme.shadows.sm]}
                 onPress={handleSave}
               >
-                <Text style={styles.modalButtonText}>Save</Text>
+                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      <ThemedDialog
+        visible={deleteDialogVisible}
+        title="Delete Category"
+        message={deleteMessage}
+        theme={theme}
+        onDismiss={() => {
+          setDeleteDialogVisible(false);
+          setCategoryToDelete(null);
+        }}
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setDeleteDialogVisible(false);
+              setCategoryToDelete(null);
+            },
+            style: 'default',
+          },
+          {
+            text: 'Delete',
+            onPress: confirmDelete,
+            style: 'destructive',
+          },
+        ]}
+      />
     </View>
   );
 };
@@ -283,7 +313,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -320,8 +349,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   selectedColor: {
-    borderWidth: 3,
-    borderColor: '#FFF',
+    borderWidth: 4,
   },
   modalActions: {
     flexDirection: 'row',

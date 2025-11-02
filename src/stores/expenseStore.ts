@@ -123,25 +123,29 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
   deleteExpense: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      const expense = await getExpenseRepository().getById(id);
-      if (expense) {
-        // Reverse the account balance change
-        await getAccountRepository().updateBalance(
-          expense.accountId,
-          expense.amount,
-          expense.type === 'expense' // Reverse the operation
-        );
+      const expenseToDelete = await getExpenseRepository().getById(id);
+      if (!expenseToDelete) {
+        throw new Error('Expense not found');
       }
-      
+
+      // Revert the transaction amount from the associated account
+      await getAccountRepository().updateBalance(
+        expenseToDelete.accountId,
+        expenseToDelete.amount,
+        expenseToDelete.type === 'expense' // Add back if it was an expense
+      );
+
+      // Delete the expense record
       await getExpenseRepository().delete(id);
-      
-      // Refresh accounts to reflect balance changes
-      await useAccountStore.getState().fetchAccounts();
-      
+
+      // Update state by removing the deleted expense
       set((state) => ({
         expenses: state.expenses.filter((e) => e.id !== id),
         loading: false,
       }));
+
+      // Refresh accounts to reflect balance changes
+      await useAccountStore.getState().fetchAccounts();
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;
