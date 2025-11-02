@@ -4,6 +4,7 @@ import { AccountRepository } from '../data/repositories/AccountRepository';
 
 interface AccountState {
   accounts: Account[];
+  totalBalance: number;
   loading: boolean;
   error: string | null;
   
@@ -12,6 +13,7 @@ interface AccountState {
   addAccount: (account: CreateAccountDTO) => Promise<void>;
   updateAccount: (account: UpdateAccountDTO) => Promise<void>;
   deleteAccount: (id: number) => Promise<void>;
+  calculateTotalBalance: () => void;
 }
 
 // Lazy-load repository to avoid database initialization issues
@@ -22,8 +24,9 @@ const getAccountRepository = () => {
   return accountRepository;
 };
 
-export const useAccountStore = create<AccountState>((set) => ({
+export const useAccountStore = create<AccountState>((set, get) => ({
   accounts: [],
+  totalBalance: 0,
   loading: false,
   error: null,
 
@@ -32,6 +35,7 @@ export const useAccountStore = create<AccountState>((set) => ({
     try {
       const accounts = await getAccountRepository().getAll();
       set({ accounts, loading: false });
+      get().calculateTotalBalance();
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
     }
@@ -40,7 +44,9 @@ export const useAccountStore = create<AccountState>((set) => ({
   addAccount: async (account: CreateAccountDTO) => {
     set({ loading: true, error: null });
     try {
+      console.log('Creating account:', account);
       const id = await getAccountRepository().create(account);
+      console.log('Account created with ID:', id);
       const newAccount = await getAccountRepository().getById(id);
       
       if (newAccount) {
@@ -48,8 +54,10 @@ export const useAccountStore = create<AccountState>((set) => ({
           accounts: [...state.accounts, newAccount],
           loading: false,
         }));
+        get().calculateTotalBalance();
       }
     } catch (error) {
+      console.error('Error creating account:', error);
       set({ error: (error as Error).message, loading: false });
       throw error;
     }
@@ -68,6 +76,7 @@ export const useAccountStore = create<AccountState>((set) => ({
           ),
           loading: false,
         }));
+        get().calculateTotalBalance();
       }
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -83,9 +92,16 @@ export const useAccountStore = create<AccountState>((set) => ({
         accounts: state.accounts.filter((a) => a.id !== id),
         loading: false,
       }));
+      get().calculateTotalBalance();
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;
     }
+  },
+
+  calculateTotalBalance: () => {
+    set((state) => ({
+      totalBalance: state.accounts.reduce((sum, acc) => sum + acc.balance, 0),
+    }));
   },
 }));

@@ -5,6 +5,10 @@ const DATABASE_NAME = 'expense_tracker.db';
 export class DatabaseService {
   private static instance: DatabaseService;
   private db: SQLite.SQLiteDatabase | null = null;
+  // Track readiness so UI can guard DB calls until initialized
+  public get isInitialized(): boolean {
+    return this.db !== null;
+  }
 
   private constructor() {}
 
@@ -17,6 +21,12 @@ export class DatabaseService {
 
   async initialize(): Promise<void> {
     try {
+      // Prevent multiple initializations
+      if (this.db !== null) {
+        console.log('Database already initialized');
+        return;
+      }
+      
       this.db = await SQLite.openDatabaseAsync(DATABASE_NAME);
       await this.createTables();
       console.log('Database initialized successfully');
@@ -80,6 +90,8 @@ export class DatabaseService {
 
   getDatabase(): SQLite.SQLiteDatabase {
     if (!this.db) {
+      console.error('Database not initialized! Stack trace:');
+      console.trace();
       throw new Error('Database not initialized. Call initialize() first.');
     }
     return this.db;

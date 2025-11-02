@@ -2,7 +2,9 @@ import { Category, CreateCategoryDTO, UpdateCategoryDTO } from '../models';
 import DatabaseService from '../database/DatabaseService';
 
 export class CategoryRepository {
-  private db = DatabaseService.getDatabase();
+  private get db() {
+    return DatabaseService.getDatabase();
+  }
 
   async getAll(): Promise<Category[]> {
     try {

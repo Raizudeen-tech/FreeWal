@@ -14,6 +14,7 @@ import { useExpenseStore } from '../stores/expenseStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ExpenseRepository } from '../data/repositories/ExpenseRepository';
+import DatabaseService from '../data/database/DatabaseService';
 import { lightTheme, darkTheme } from '../constants/theme';
 import { getCurrencySymbol, formatCurrency } from '../utils/export';
 
@@ -78,6 +79,8 @@ export const StatsScreen: React.FC = () => {
   }, [expenses, categories, selectedPeriod]);
 
   const loadChartData = async () => {
+    // Guard until database ready to avoid native crashes
+    if (!DatabaseService.isInitialized) return;
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
     const end = format(endOfMonth(now), 'yyyy-MM-dd');

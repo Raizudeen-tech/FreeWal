@@ -3,7 +3,9 @@ import DatabaseService from '../database/DatabaseService';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 export class ExpenseRepository {
-  private db = DatabaseService.getDatabase();
+  private get db() {
+    return DatabaseService.getDatabase();
+  }
 
   async getAll(): Promise<Expense[]> {
     try {
@@ -154,13 +156,19 @@ export class ExpenseRepository {
   async getTotalByTypeAndDateRange(
     type: 'expense' | 'income',
     startDate: string,
-    endDate: string
+    endDate: string,
+    accountId?: number
   ): Promise<number> {
     try {
-      const result = await this.db.getFirstAsync<{ total: number }>(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE type = ? AND date BETWEEN ? AND ?',
-        [type, startDate, endDate]
-      );
+      let query = 'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE type = ? AND date BETWEEN ? AND ?';
+      const params: any[] = [type, startDate, endDate];
+
+      if (accountId) {
+        query += ' AND account_id = ?';
+        params.push(accountId);
+      }
+
+      const result = await this.db.getFirstAsync<{ total: number }>(query, params);
       return result?.total || 0;
     } catch (error) {
       console.error('Error calculating total:', error);
@@ -168,16 +176,26 @@ export class ExpenseRepository {
     }
   }
 
-  async getCategoryTotals(startDate: string, endDate: string): Promise<Array<{ categoryId: number; total: number }>> {
+  async getCategoryTotals(
+    startDate: string,
+    endDate: string,
+    accountId?: number
+    ): Promise<Array<{ categoryId: number; total: number }>> {
     try {
-      const result = await this.db.getAllAsync<any>(
-        `SELECT category_id as categoryId, SUM(amount) as total 
-         FROM expenses 
-         WHERE type = 'expense' AND date BETWEEN ? AND ? 
-         GROUP BY category_id 
-         ORDER BY total DESC`,
-        [startDate, endDate]
-      );
+      let query = `
+        SELECT category_id as categoryId, SUM(amount) as total 
+        FROM expenses 
+        WHERE type = 'expense' AND date BETWEEN ? AND ?`;
+      const params: any[] = [startDate, endDate];
+
+      if (accountId) {
+        query += ' AND account_id = ?';
+        params.push(accountId);
+      }
+
+      query += ' GROUP BY category_id ORDER BY total DESC';
+      
+      const result = await this.db.getAllAsync<any>(query, params);
       return result;
     } catch (error) {
       console.error('Error getting category totals:', error);

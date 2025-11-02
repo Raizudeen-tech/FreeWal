@@ -2,7 +2,9 @@ import { Account, CreateAccountDTO, UpdateAccountDTO } from '../models';
 import DatabaseService from '../database/DatabaseService';
 
 export class AccountRepository {
-  private db = DatabaseService.getDatabase();
+  private get db() {
+    return DatabaseService.getDatabase();
+  }
 
   async getAll(): Promise<Account[]> {
     try {
@@ -31,10 +33,14 @@ export class AccountRepository {
 
   async create(account: CreateAccountDTO): Promise<number> {
     try {
-      const result = await this.db.runAsync(
+      console.log('AccountRepository.create - Getting database...');
+      const db = this.db;
+      console.log('AccountRepository.create - Database obtained, running insert...');
+      const result = await db.runAsync(
         'INSERT INTO accounts (name, balance, currency) VALUES (?, ?, ?)',
         [account.name, account.balance, account.currency]
       );
+      console.log('AccountRepository.create - Insert successful, ID:', result.lastInsertRowId);
       return result.lastInsertRowId;
     } catch (error) {
       console.error('Error creating account:', error);

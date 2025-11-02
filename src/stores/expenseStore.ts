@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Expense, CreateExpenseDTO, UpdateExpenseDTO } from '../data/models';
 import { ExpenseRepository } from '../data/repositories/ExpenseRepository';
 import { AccountRepository } from '../data/repositories/AccountRepository';
+import { useAccountStore } from './accountStore';
 
 interface ExpenseState {
   expenses: Expense[];
@@ -58,6 +59,9 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
         expense.type === 'income'
       );
       
+      // Refresh accounts to reflect balance changes
+      await useAccountStore.getState().fetchAccounts();
+      
       const newExpense = await getExpenseRepository().getById(id);
       if (newExpense) {
         set((state) => ({
@@ -74,17 +78,42 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
   updateExpense: async (expense: UpdateExpenseDTO) => {
     set({ loading: true, error: null });
     try {
+      // Get the original expense before updating
+      const originalExpense = await getExpenseRepository().getById(expense.id);
+      if (!originalExpense) {
+        throw new Error('Original expense not found');
+      }
+
+      // Update the expense record
       await getExpenseRepository().update(expense);
       const updatedExpense = await getExpenseRepository().getById(expense.id);
-      
-      if (updatedExpense) {
-        set((state) => ({
-          expenses: state.expenses.map((e) =>
-            e.id === expense.id ? updatedExpense : e
-          ),
-          loading: false,
-        }));
+      if (!updatedExpense) {
+        throw new Error('Updated expense not found');
       }
+
+      // Revert the original transaction
+      await getAccountRepository().updateBalance(
+        originalExpense.accountId,
+        originalExpense.amount,
+        originalExpense.type === 'expense' // Add back if it was an expense
+      );
+
+      // Apply the new transaction
+      await getAccountRepository().updateBalance(
+        updatedExpense.accountId,
+        updatedExpense.amount,
+        updatedExpense.type === 'income' // Subtract if it's not income
+      );
+
+      // Refresh accounts to reflect balance changes
+      await useAccountStore.getState().fetchAccounts();
+
+      set((state) => ({
+        expenses: state.expenses.map((e) =>
+          e.id === expense.id ? updatedExpense : e
+        ),
+        loading: false,
+      }));
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;
@@ -105,6 +134,10 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
       }
       
       await getExpenseRepository().delete(id);
+      
+      // Refresh accounts to reflect balance changes
+      await useAccountStore.getState().fetchAccounts();
+      
       set((state) => ({
         expenses: state.expenses.filter((e) => e.id !== id),
         loading: false,

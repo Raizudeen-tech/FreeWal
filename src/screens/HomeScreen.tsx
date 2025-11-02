@@ -14,22 +14,26 @@ import { useCategoryStore } from '../stores/categoryStore';
 import { useAccountStore } from '../stores/accountStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ExpenseRepository } from '../data/repositories/ExpenseRepository';
+import DatabaseService from '../data/database/DatabaseService';
 import { lightTheme, darkTheme } from '../constants/theme';
 import { getCurrencySymbol, formatCurrency } from '../utils/export';
 
 export const HomeScreen: React.FC = () => {
   const { expenses, loading } = useExpenseStore();
   const { categories } = useCategoryStore();
-  const { accounts } = useAccountStore();
+  const { accounts, totalBalance, fetchAccounts } = useAccountStore();
   const { currency, theme: themeMode } = useSettingsStore();
+  const { fetchExpenses } = useExpenseStore();
+  const { fetchCategories } = useCategoryStore();
   const expenseRepo = useMemo(() => new ExpenseRepository(), []);
-  
+
   const [monthlyStats, setMonthlyStats] = useState({
     totalIncome: 0,
     totalExpense: 0,
     netSavings: 0,
     topCategory: '',
   });
+  const [selectedAccountId, setSelectedAccountId] = useState<'all' | number>('all');
 
   const colorScheme = useColorScheme();
   const resolvedTheme = themeMode === 'system' ? colorScheme : themeMode;
@@ -37,17 +41,28 @@ export const HomeScreen: React.FC = () => {
   const currencySymbol = getCurrencySymbol(currency);
 
   useEffect(() => {
+    // Initial data fetch
+    fetchExpenses();
+    fetchCategories();
+    fetchAccounts();
+  }, []);
+
+  useEffect(() => {
     calculateMonthlyStats();
-  }, [expenses, categories]);
+  }, [expenses, categories, selectedAccountId, accounts]);
 
   const calculateMonthlyStats = async () => {
+    // Guard until DB is initialized to avoid native crashes
+    if (!DatabaseService.isInitialized) return;
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
     const end = format(endOfMonth(now), 'yyyy-MM-dd');
 
-    const totalIncome = await expenseRepo.getTotalByTypeAndDateRange('income', start, end);
-    const totalExpense = await expenseRepo.getTotalByTypeAndDateRange('expense', start, end);
-    const categoryTotals = await expenseRepo.getCategoryTotals(start, end);
+    const accountId = selectedAccountId === 'all' ? undefined : selectedAccountId;
+
+  const totalIncome = await expenseRepo.getTotalByTypeAndDateRange('income', start, end, accountId);
+  const totalExpense = await expenseRepo.getTotalByTypeAndDateRange('expense', start, end, accountId);
+  const categoryTotals = await expenseRepo.getCategoryTotals(start, end, accountId);
 
     let topCategory = 'N/A';
     if (categoryTotals.length > 0 && categories.length > 0) {
@@ -63,7 +78,36 @@ export const HomeScreen: React.FC = () => {
     });
   };
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+  const handleToggleAccount = () => {
+    if (accounts.length === 0) return;
+
+    if (selectedAccountId === 'all') {
+      setSelectedAccountId(accounts[0].id);
+    } else {
+      const currentIndex = accounts.findIndex(a => a.id === selectedAccountId);
+      if (currentIndex === -1 || currentIndex === accounts.length - 1) {
+        setSelectedAccountId('all');
+      } else {
+        setSelectedAccountId(accounts[currentIndex + 1].id);
+      }
+    }
+  };
+
+  const displayedBalance = useMemo(() => {
+    if (selectedAccountId === 'all') {
+      return totalBalance;
+    }
+    const account = accounts.find(a => a.id === selectedAccountId);
+    return account?.balance ?? 0;
+  }, [selectedAccountId, accounts, totalBalance]);
+
+  const displayedAccountName = useMemo(() => {
+    if (selectedAccountId === 'all') {
+      return 'All Accounts';
+    }
+    const account = accounts.find(a => a.id === selectedAccountId);
+    return account?.name ?? 'All Accounts';
+  }, [selectedAccountId, accounts]);
 
   if (loading) {
     return (
@@ -85,10 +129,17 @@ export const HomeScreen: React.FC = () => {
       </View>
 
       {/* Main Balance Card */}
-      <View style={[styles.balanceCard, { backgroundColor: theme.colors.primary }, theme.shadows.lg]}>
-        <Text style={styles.balanceLabel}>Total Balance</Text>
+      <TouchableOpacity
+        style={[styles.balanceCard, { backgroundColor: theme.colors.primary }, theme.shadows.lg]}
+        onPress={handleToggleAccount}
+        activeOpacity={0.8}
+      >
+        <View style={styles.balanceHeader}>
+          <Text style={styles.balanceLabel}>{displayedAccountName}</Text>
+          <Text style={styles.balanceToggleHint}>(Tap to switch)</Text>
+        </View>
         <Text style={styles.balanceAmount}>
-          {formatCurrency(totalBalance, currencySymbol)}
+          {formatCurrency(displayedBalance, currencySymbol)}
         </Text>
         <View style={styles.balanceRow}>
           <View style={styles.balanceItem}>
@@ -104,7 +155,7 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
@@ -202,6 +253,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.9,
   },
+  balanceToggleHint: {
+    color: '#FFF',
+    fontSize: 12,
+    opacity: 0.7,
+  },
   balanceAmount: {
     color: '#FFF',
     fontSize: 36,
@@ -212,6 +268,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 20,
     gap: 20,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   balanceItem: {
     flex: 1,
