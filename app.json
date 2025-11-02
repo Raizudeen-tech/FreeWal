@@ -28,8 +28,7 @@
       "favicon": "./assets/icon.png"
     },
     "plugins": [
-      "expo-sqlite",
-      "expo-font"
+      "expo-sqlite"
     ],
     "extra": {
       "eas": {

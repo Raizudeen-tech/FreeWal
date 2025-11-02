@@ -22,6 +22,11 @@ import DatabaseService from '../data/database/DatabaseService';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ThemedDialog } from '../components/ThemedDialog';
 import { useNavigation } from '@react-navigation/native';
+import { 
+  canUseBiometrics, 
+  authenticateWithBiometrics,
+  getBiometricTypeName 
+} from '../utils/biometricAuth';
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -87,6 +92,39 @@ export const SettingsScreen: React.FC = () => {
           },
         ],
         'secure-text'
+      );
+    }
+  };
+
+  const handleToggleBiometric = async (value: boolean) => {
+    if (value) {
+      // Enabling biometric
+      const { available, reason } = await canUseBiometrics();
+      
+      if (!available) {
+        Alert.alert('Biometric Unavailable', reason || 'Cannot use biometric authentication');
+        return;
+      }
+
+      // Test biometric authentication
+      const biometricType = await getBiometricTypeName();
+      const result = await authenticateWithBiometrics(`Enable ${biometricType} Lock`);
+      
+      if (result.success) {
+        enableBiometric();
+        Alert.alert('Success', `${biometricType} lock enabled successfully`);
+      } else {
+        Alert.alert('Authentication Failed', result.error || 'Could not authenticate');
+      }
+    } else {
+      // Disabling biometric
+      Alert.alert(
+        'Disable Biometric Lock',
+        'Are you sure you want to disable biometric authentication?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Disable', onPress: disableBiometric },
+        ]
       );
     }
   };
@@ -246,7 +284,7 @@ export const SettingsScreen: React.FC = () => {
           </Text>
           <Switch
             value={isBiometricEnabled}
-            onValueChange={(value) => value ? enableBiometric() : disableBiometric()}
+            onValueChange={handleToggleBiometric}
             trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
           />
         </View>
